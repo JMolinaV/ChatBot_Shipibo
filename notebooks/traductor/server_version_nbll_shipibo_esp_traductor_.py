@@ -8,11 +8,13 @@ from transformers import (
     Seq2SeqTrainer,
     DataCollatorForSeq2Seq
 )
-from datasets import Dataset, load_dataset
+from datasets import Dataset, load_dataset,load_metric
 import json
 import os
-from datasets import load_metric
 import numpy as np
+import csv
+import json
+from evaluate import load
 
 # ==============================================================================
 # TRADUCTOR INMEDIATO
@@ -265,49 +267,66 @@ def usar_modelo_entrenado(model_path='./modelo-shipibo-entrenado'):
 
     return traductor
 
-def evaluar_bleu(modelo_path, test_data, num_ejemplos=None):
+
+def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
+                 save_csv="resultados_bleu.csv",
+                 save_json="resultados_bleu.json"):
     """
-    Evalúa el modelo con BLEU score
+    Evalúa el modelo con BLEU y guarda los resultados en CSV y JSON.
     """
     print("\n" + "="*70)
     print("📊 EVALUANDO MODELO CON BLEU")
     print("="*70 + "\n")
 
-    # Cargar modelo entrenado
+    # 1. Cargar modelo entrenado
     traductor = TraductorShipibo(model_name=modelo_path)
 
-    # Cargar métrica BLEU
-    bleu = load_metric("sacrebleu")
+    # 2. Cargar métrica BLEU
+    bleu = load("sacrebleu")
 
-    # Limitar ejemplos si es necesario
+    # 3. Limitar ejemplos si se solicita
     if num_ejemplos:
         test_data = test_data.select(range(min(num_ejemplos, len(test_data))))
 
     traducciones = []
     referencias = []
 
+    filas_exportar = []
+
     print(f"Evaluando {len(test_data)} ejemplos...")
 
+    # 4. Evaluación
     for i, ejemplo in enumerate(test_data):
-        # Traducir
+
+        # Traducción generada
         traduccion = traductor.translate(
             ejemplo['spa'],
             src_lang='español',
             tgt_lang='shipibo'
-        )
-        referencia = ejemplo['shp']
+        ).strip()
+
+        # Referencia real
+        referencia = ejemplo['shp'].strip()
 
         traducciones.append(traduccion)
-        referencias.append([referencia])  # Lista de listas para BLEU
+        referencias.append([referencia])
 
-        # Mostrar algunos ejemplos
+        # Agregar a tabla para exportar
+        filas_exportar.append({
+            "index": i,
+            "spa": ejemplo["spa"],
+            "shp_reference": referencia,
+            "shp_predicted": traduccion
+        })
+
+        # Mostrar primeros ejemplos
         if i < 5:
             print(f"\n📝 Ejemplo {i+1}:")
             print(f"   Español:    {ejemplo['spa']}")
-            print(f"   Shipibo:    {referencia}")
+            print(f"   Shipibo GT: {referencia}")
             print(f"   Generado:   {traduccion}")
 
-    # Calcular BLEU
+    # 5. Calcular BLEU
     resultado = bleu.compute(predictions=traducciones, references=referencias)
     bleu_score = resultado['score']
 
@@ -315,17 +334,27 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None):
     print(f"🎯 BLEU Score: {bleu_score:.2f}")
     print("="*70)
 
-    # Interpretación
-    if bleu_score >= 50:
-        print("✅ Excelente traducción")
-    elif bleu_score >= 30:
-        print("✅ Buena traducción")
-    elif bleu_score >= 15:
-        print("⚠️  Traducción aceptable, hay margen de mejora")
-    else:
-        print("❌ Traducción pobre, necesita más datos/épocas")
+    # -------- GUARDAR EN CSV --------
+    if save_csv is not None:
+        with open(save_csv, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["index", "spa", "shp_reference", "shp_predicted"])
+            writer.writeheader()
+            writer.writerows(filas_exportar)
+        print(f"📁 Resultados guardados en CSV: {save_csv}")
+
+    # -------- GUARDAR EN JSON --------
+    if save_json is not None:
+        data_json = {
+            "bleu_score": bleu_score,
+            "num_ejemplos": len(test_data),
+            "resultados": filas_exportar
+        }
+        with open(save_json, "w", encoding="utf-8") as f:
+            json.dump(data_json, f, ensure_ascii=False, indent=4)
+        print(f"📁 Resultados guardados en JSON: {save_json}")
 
     return bleu_score, traducciones, referencias
+
 
 
 # ==============================================================================
@@ -367,7 +396,13 @@ if __name__ == "__main__":
 #files.download('modelo-shipibo.zip')
 
 
-    # Usar:
-    split = dataset.train_test_split(test_size=0.2, seed=42)
-    test_data = split['test']
-    bleu_score, preds, refs = evaluar_bleu('modelo-shipibo-entrenado', test_data)
+    split = dataset.train_test_split(test_size=0.2)
+    test_data = split["test"]
+
+    evaluar_bleu(
+        "modelo-shipibo-entrenado",
+        test_data,
+        num_ejemplos=200,   # opcional
+        save_csv="evaluacion_bleu.csv",
+        save_json="evaluacion_bleu.json"
+    )
