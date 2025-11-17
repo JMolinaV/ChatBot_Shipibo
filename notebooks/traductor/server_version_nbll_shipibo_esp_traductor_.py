@@ -1,10 +1,6 @@
 import torch
 import time
 import os
-import sys
-
-# Forzar unbuffered output
-sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
 
 # Desactivar wandb
 os.environ["WANDB_DISABLED"] = "true"
@@ -32,16 +28,16 @@ from evaluate import load
 class TraductorShipibo:
 
     def __init__(self, model_name="facebook/nllb-200-distilled-600M"):
-        print(f"🔄 Cargando modelo: {model_name}", flush=True)
+        print(f" Cargando modelo: {model_name}", flush=True)
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, src_lang="spa_Latn")
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
         if torch.cuda.is_available():
             self.model = self.model.cuda()
-            print("✅ Modelo en GPU", flush=True)
+            print(" Modelo en GPU", flush=True)
         else:
-            print("⚠️ Modelo en CPU", flush=True)
+            print(" Modelo en CPU", flush=True)
 
         self.model.eval()
 
@@ -52,7 +48,7 @@ class TraductorShipibo:
             'quechua': 'quy_Latn',
         }
 
-        print("✅ Todo Listo!", flush=True)
+        print(" todo Listo!", flush=True)
 
     def translate(self, text, src_lang='español', tgt_lang='shipibo'):
         src_code = self.lang_codes[src_lang]
@@ -81,7 +77,7 @@ def cargar_dataset(source, tipo='json'):
     """Carga dataset desde diferentes fuentes"""
 
     if tipo == 'json':
-        print(f"📂 Cargando: {source}", flush=True)
+        print(f" Cargando: {source}", flush=True)
         with open(source, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
@@ -95,58 +91,26 @@ def cargar_dataset(source, tipo='json'):
         dataset = Dataset.from_dict({'spa': spa, 'shp': shp})
 
     elif tipo == 'huggingface':
-        print(f"📂 Cargando: {source}", flush=True)
+        print(f" Cargando: {source}", flush=True)
         dataset = load_dataset(source)
         if 'train' in dataset:
             dataset = dataset['train']
 
-    print(f"✅ {len(dataset)} pares cargados", flush=True)
+    print(f" {len(dataset)} pares cargados", flush=True)
     return dataset
 
 # =======================================================================
-# CALLBACK: PROGRESO EN TIEMPO REAL
+# CALLBACK: PROGRESO EN TIEMPO REAL (NUEVO)
 # =======================================================================
 
 class ProgressCallback(TrainerCallback):
-    """
-    Callback para mostrar progreso detallado durante entrenamiento
-    """
+    """Callback para mostrar progreso cada 20 steps"""
     
-    def __init__(self):
-        self.step_times = []
-        self.last_step_time = None
-        
-    def on_train_begin(self, args, state, control, **kwargs):
-        print("\n" + "🚀 " + "="*68, flush=True)
-        print("🚀 ENTRENAMIENTO INICIADO", flush=True)
-        print("🚀 " + "="*68, flush=True)
-        self.last_step_time = time.time()
-        
     def on_step_end(self, args, state, control, **kwargs):
-        # Calcular tiempo por step
-        current_time = time.time()
-        if self.last_step_time is not None:
-            step_time = current_time - self.last_step_time
-            self.step_times.append(step_time)
-        self.last_step_time = current_time
-        
-        # Mostrar progreso cada 20 pasos
         if state.global_step % 20 == 0:
-            avg_time = np.mean(self.step_times[-20:]) if self.step_times else 0
-            
-            # Calcular ETA
-            total_steps = state.max_steps
-            remaining_steps = total_steps - state.global_step
-            eta_seconds = remaining_steps * avg_time
-            eta_minutes = eta_seconds / 60
-            
-            print(f"\n⚡ Step {state.global_step}/{total_steps} | "
-                  f"Epoch {state.epoch:.2f} | "
-                  f"Tiempo/step: {avg_time:.2f}s | "
-                  f"ETA: {eta_minutes:.1f} min", flush=True)
-            
+            print(f"⚡ Step {state.global_step}/{state.max_steps} | Epoch {state.epoch:.2f}", flush=True)
+    
     def on_log(self, args, state, control, logs=None, **kwargs):
-        # Mostrar loss cuando esté disponible
         if logs and 'loss' in logs:
             print(f"📉 Loss: {logs['loss']:.4f}", flush=True)
 
@@ -175,9 +139,6 @@ class PrintEpochCallback(TrainerCallback):
     def on_epoch_begin(self, args, state, control, **kwargs):
         # Guardar tiempo de inicio de la época
         self._epoch_start_time = time.time()
-        print(f"\n{'='*60}", flush=True)
-        print(f"📖 Iniciando Época {state.epoch:.0f}", flush=True)
-        print(f"{'='*60}", flush=True)
 
     def on_epoch_end(self, args, state, control, **kwargs):
         # Tiempo de la época
@@ -247,7 +208,7 @@ class PrintEpochCallback(TrainerCallback):
         else:
             print("🔹 eval_loss: N/A", flush=True)
         if elapsed is not None:
-            print(f"⏱ Tiempo en la época: {elapsed:.2f} segundos ({elapsed/60:.1f} min)", flush=True)
+            print(f"⏱ Tiempo en la época: {elapsed:.2f} segundos", flush=True)
         if self.batch_size is not None:
             print(f"📦 Batch size por dispositivo: {self.batch_size}", flush=True)
         if gpu_mem_mb is not None:
@@ -266,24 +227,24 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
     print("🎓 ENTRENANDO MODELO SHIPIBO-KONIBO", flush=True)
     print("="*70 + "\n", flush=True)
 
-    # Dataset en train y test
+    #  dataset en train y test
     split = dataset.train_test_split(test_size=0.2, seed=42)
     train_data = split['train']
     test_data = split['test']
 
-    print(f"✅ Train: {len(train_data)} | Test: {len(test_data)}\n", flush=True)
+    print(f" Train: {len(train_data)} | Test: {len(test_data)}\n", flush=True)
 
-    # Modelo base
-    print("🔄 Cargando NLLB base...", flush=True)
+    # modelo base
+    print(" Cargando NLLB base...", flush=True)
     model_name = "facebook/nllb-200-distilled-600M"
     tokenizer = AutoTokenizer.from_pretrained(model_name, src_lang="spa_Latn", tgt_lang="quy_Latn")
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-    # Mover modelo a GPU si está disponible
+    # mover modelo a GPU si está disponible
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-    print(f"✅ Modelo base cargado en {device.upper()}\n", flush=True)
+    print(" Modelo base cargado\n", flush=True)
 
     # FUNCIÓN DE PREPROCESAMIENTO
     def preprocess_function(examples):
@@ -322,7 +283,7 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         return model_inputs
 
     # Preprocesar datos
-    print("🔄 Preprocesando datos...", flush=True)
+    print(" Preprocesando datos...", flush=True)
     train_tokenized = train_data.map(
         preprocess_function,
         batched=True,
@@ -337,10 +298,10 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         desc="Procesando test"
     )
 
-    print("✅ Datos preprocesados\n", flush=True)
+    print(" Datos preprocesados\n", flush=True)
 
     # Configurar entrenamiento
-    print("⚙️ Configurando entrenamiento...", flush=True)
+    print("  Configurando entrenamiento...", flush=True)
     training_args = Seq2SeqTrainingArguments(
         output_dir=output_dir,
         eval_strategy="epoch",
@@ -353,11 +314,11 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         save_total_limit=2,
         predict_with_generate=True,
         fp16=torch.cuda.is_available(),
-        logging_steps=10,  # ⬅️ Cambiado de 100 a 10
+        logging_steps=10,  # ⬅️ CAMBIADO de 100 a 10
         load_best_model_at_end=True,
         report_to="none",
-        disable_tqdm=False,  # ⬅️ Habilitar tqdm
-        logging_first_step=True,  # ⬅️ Log desde el primer step
+        disable_tqdm=False,  # ⬅️ NUEVO
+        logging_first_step=True,  # ⬅️ NUEVO
     )
 
     # Data collator
@@ -367,7 +328,7 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         padding=True
     )
 
-    # Crear instancias de los callbacks
+    # Crear instancia del callback con batch_size leído de training_args
     epoch_callback = PrintEpochCallback(
         tokenizer=tokenizer,
         model=model,
@@ -376,9 +337,10 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         batch_size=training_args.per_device_train_batch_size
     )
     
+    # ⬅️ NUEVO: Callback de progreso
     progress_callback = ProgressCallback()
 
-    # Crear trainer (añadiendo ambos callbacks)
+    # Crear trainer (añadiendo callbacks)
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
@@ -386,30 +348,30 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         eval_dataset=test_tokenized,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        callbacks=[epoch_callback, progress_callback],  # ⬅️ Ambos callbacks
+        callbacks=[epoch_callback, progress_callback],  # ⬅️ AGREGADO progress_callback
     )
 
-    print("✅ Trainer configurado\n", flush=True)
+    print(" Trainer configurado\n", flush=True)
 
     # Entrenar
-    print("🚀 Iniciando entrenamiento...", flush=True)
-    print(f"⏱️ Esto tomará aproximadamente {num_epochs * 2}-{num_epochs * 4} minutos\n", flush=True)
+    print(" Iniciando entrenamiento...", flush=True)
+    print(f" Esto tomará aproximadamente {num_epochs * 2}-{num_epochs * 4} minutos\n", flush=True)
 
     try:
         trainer.train()
 
         # Guardar modelo
-        print("\n💾 Guardando modelo...", flush=True)
+        print("\n Guardando modelo...", flush=True)
         trainer.save_model(output_dir)
         tokenizer.save_pretrained(output_dir)
 
-        print(f"\n✅ ¡ÉXITO! Modelo guardado en: {output_dir}", flush=True)
-        print(f"💡 Úsalo con: TraductorShipibo(model_name='{output_dir}')", flush=True)
+        print(f"\n ¡ÉXITO! Modelo guardado en: {output_dir}", flush=True)
+        print(f" Úsalo con: TraductorShipibo(model_name='{output_dir}')", flush=True)
 
         return trainer
 
     except Exception as e:
-        print(f"\n❌ Error durante entrenamiento: {e}", flush=True)
+        print(f"\n Error durante entrenamiento: {e}", flush=True)
         raise
 
 # =======================================================================
@@ -420,15 +382,15 @@ def usar_modelo_entrenado(model_path='./modelo-shipibo-entrenado'):
     """Carga y prueba el modelo entrenado"""
 
     if not os.path.exists(model_path):
-        print(f"❌ No existe: {model_path}", flush=True)
-        print("💡 Primero entrena con: entrenar_modelo(dataset)", flush=True)
+        print(f" No existe: {model_path}", flush=True)
+        print(" Primero entrena con: entrenar_modelo(dataset)", flush=True)
         return None
 
-    print(f"\n🔄 Cargando modelo entrenado...", flush=True)
+    print(f"\n Cargando modelo entrenado...", flush=True)
     traductor = TraductorShipibo(model_name=model_path)
 
     print("\n" + "="*70, flush=True)
-    print("🧪 PROBANDO MODELO ENTRENADO", flush=True)
+    print(" PROBANDO MODELO ENTRENADO", flush=True)
     print("="*70 + "\n", flush=True)
 
     # Pruebas
@@ -440,7 +402,7 @@ def usar_modelo_entrenado(model_path='./modelo-shipibo-entrenado'):
         "Me gusta el río",
     ]
 
-    print("📝 Español → Shipibo:\n", flush=True)
+    print(" Español → Shipibo:\n", flush=True)
     for frase in frases_test:
         traduccion = traductor.translate(frase, 'español', 'shipibo')
         print(f"ES: {frase}", flush=True)
@@ -477,7 +439,7 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
 
     filas_exportar = []
 
-    print(f"🔄 Evaluando {len(test_data)} ejemplos...", flush=True)
+    print(f"Evaluando {len(test_data)} ejemplos...", flush=True)
 
     # 4. Evaluación
     for i, ejemplo in enumerate(test_data):
@@ -509,10 +471,6 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
             print(f"   Español:    {ejemplo['spa']}", flush=True)
             print(f"   Shipibo GT: {referencia}", flush=True)
             print(f"   Generado:   {traduccion}", flush=True)
-            
-        # Mostrar progreso cada 50 ejemplos
-        if (i + 1) % 50 == 0:
-            print(f"⚡ Progreso: {i+1}/{len(test_data)}", flush=True)
 
     # 5. Calcular BLEU
     resultado = bleu.compute(predictions=traducciones, references=referencias)
@@ -550,14 +508,14 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
 if __name__ == "__main__":
 
     print("="*70, flush=True)
-    print("🌎 TRADUCTOR ESPAÑOL-SHIPIBO-KONIBO", flush=True)
+    print(" TRADUCTOR ESPAÑOL-SHIPIBO-KONIBO", flush=True)
     print("="*70 + "\n", flush=True)
 
     # PASO 1: Probar traductor base (sin entrenar)
     print("PASO 1: Probando traductor base (inmediato)\n", flush=True)
     traductor_base = TraductorShipibo()
 
-    print("\n📝 Ejemplos con modelo base:\n", flush=True)
+    print("\n Ejemplos con modelo base:\n", flush=True)
     ejemplos = ["Hola", "Buenos días", "Gracias"]
     for ej in ejemplos:
         print(f"ES: {ej}", flush=True)
