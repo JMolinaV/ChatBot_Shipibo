@@ -1,0 +1,50 @@
+⚙️  Running in WANDB offline mode
+======================================================================
+ TRADUCTOR ESPAÑOL-SHIPIBO-KONIBO
+======================================================================
+
+PASO 1: Probando traductor base (inmediato)
+
+ Cargando modelo: facebook/nllb-200-distilled-600M
+ Modelo en GPU
+ todo Listo!
+
+ Ejemplos con modelo base:
+
+ES: Hola
+SH: ¿Imanötaq rikätsimantsik?
+
+ES: Buenos días
+SH: Alli p'unchay
+
+ES: Gracias
+SH: Gracias.
+
+
+======================================================================
+ Cargando: train_merged.json
+ 33012 pares cargados
+
+======================================================================
+🎓 ENTRENANDO MODELO SHIPIBO-KONIBO
+======================================================================
+
+ Train: 26409 | Test: 6603
+
+ Cargando NLLB base...
+ Modelo base cargado
+
+ Preprocesando datos...
+Procesando train:   0%|          | 0/26409 [00:00<?, ? examples/s]Procesando train:   4%|▍         | 1000/26409 [00:00<00:02, 9397.44 examples/s]Procesando train:   8%|▊         | 2000/26409 [00:00<00:02, 9698.78 examples/s]Procesando train:  11%|█▏        | 3000/26409 [00:00<00:02, 9756.23 examples/s]Procesando train:  15%|█▌        | 4000/26409 [00:00<00:02, 9763.26 examples/s]Procesando train:  19%|█▉        | 5000/26409 [00:00<00:02, 9776.91 examples/s]Procesando train:  23%|██▎       | 6000/26409 [00:00<00:02, 9794.25 examples/s]Procesando train:  27%|██▋       | 7000/26409 [00:00<00:01, 9788.01 examples/s]Procesando train:  34%|███▍      | 9000/26409 [00:00<00:01, 9952.23 examples/s]Procesando train:  42%|████▏     | 11000/26409 [00:01<00:01, 9724.14 examples/s]Procesando train:  49%|████▉     | 13000/26409 [00:01<00:01, 9843.65 examples/s]Procesando train:  57%|█████▋    | 15000/26409 [00:01<00:01, 9940.31 examples/s]Procesando train:  64%|██████▍   | 17000/26409 [00:01<00:00, 10048.61 examples/s]Procesando train:  72%|███████▏  | 19000/26409 [00:02<00:00, 8594.00 examples/s] Procesando train:  76%|███████▌  | 20000/26409 [00:02<00:00, 8804.28 examples/s]Procesando train:  80%|███████▉  | 21000/26409 [00:02<00:00, 8747.30 examples/s]Procesando train:  87%|████████▋ | 23000/26409 [00:02<00:00, 9219.76 examples/s]Procesando train:  95%|█████████▍| 25000/26409 [00:02<00:00, 9538.16 examples/s]Procesando train: 100%|██████████| 26409/26409 [00:02<00:00, 9674.14 examples/s]Procesando train: 100%|██████████| 26409/26409 [00:02<00:00, 9515.77 examples/s]
+Procesando test:   0%|          | 0/6603 [00:00<?, ? examples/s]Procesando test:  30%|███       | 2000/6603 [00:00<00:00, 10355.33 examples/s]Procesando test:  61%|██████    | 4000/6603 [00:00<00:00, 10173.86 examples/s]Procesando test:  91%|█████████ | 6000/6603 [00:00<00:00, 10035.76 examples/s]Procesando test: 100%|██████████| 6603/6603 [00:00<00:00, 10015.97 examples/s]
+/home/dalvarez/ChatBot_Shipibo/notebooks/traductor/server_version_nbll_shipibo_esp_traductor_.py:208: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `Seq2SeqTrainer.__init__`. Use `processing_class` instead.
+  trainer = Seq2SeqTrainer(
+ Datos preprocesados
+
+  Configurando entrenamiento...
+ Trainer configurado
+
+ Iniciando entrenamiento...
+ Esto tomará aproximadamente 20-40 minutos
+
+  0%|          | 0/33020 [00:00<?, ?it/s]

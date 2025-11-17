@@ -1,6 +1,11 @@
 
 
 import torch
+import os
+os.environ["WANDB_DISABLED"] = "true"
+os.environ["WANDB_MODE"] = "offline"
+os.environ["WANDB_SILENT"] = "true"
+
 from transformers import (
     AutoTokenizer,
     AutoModelForSeq2SeqLM,
@@ -8,7 +13,7 @@ from transformers import (
     Seq2SeqTrainer,
     DataCollatorForSeq2Seq
 )
-from datasets import Dataset, load_dataset,load_metric
+from datasets import Dataset, load_dataset
 import json
 import os
 import numpy as np
@@ -189,6 +194,7 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         fp16=torch.cuda.is_available(),
         logging_steps=100,
         load_best_model_at_end=True,
+        report_to = "none"
     )
 
     # Data collator
