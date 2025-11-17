@@ -2,11 +2,6 @@ import torch
 import time
 import os
 
-# Desactivar wandb
-os.environ["WANDB_DISABLED"] = "true"
-os.environ["WANDB_MODE"] = "offline"
-os.environ["WANDB_SILENT"] = "true"
-
 from transformers import (
     AutoTokenizer,
     AutoModelForSeq2SeqLM,
@@ -100,7 +95,7 @@ def cargar_dataset(source, tipo='json'):
     return dataset
 
 # =======================================================================
-# CALLBACK: PROGRESO EN TIEMPO REAL (NUEVO)
+# CALLBACK: PROGRESO EN TIEMPO REAL
 # =======================================================================
 
 class ProgressCallback(TrainerCallback):
@@ -139,6 +134,9 @@ class PrintEpochCallback(TrainerCallback):
     def on_epoch_begin(self, args, state, control, **kwargs):
         # Guardar tiempo de inicio de la época
         self._epoch_start_time = time.time()
+        print(f"\n{'='*60}", flush=True)
+        print(f"📖 Iniciando Época {int(state.epoch)}", flush=True)
+        print(f"{'='*60}\n", flush=True)
 
     def on_epoch_end(self, args, state, control, **kwargs):
         # Tiempo de la época
@@ -170,7 +168,6 @@ class PrintEpochCallback(TrainerCallback):
         gpu_mem_mb = None
         if torch.cuda.is_available():
             try:
-                # max_memory_allocated puede no estar disponible en algunas versiones; usar memory_allocated como fallback
                 gpu_mem_mb = torch.cuda.max_memory_allocated() / (1024 ** 2)
             except Exception:
                 try:
@@ -181,7 +178,6 @@ class PrintEpochCallback(TrainerCallback):
         # Traducción de ejemplo
         ejemplo = self.sample_text
         try:
-            # preparar inputs y mover al device del modelo
             inputs = self.tokenizer(ejemplo, return_tensors="pt", truncation=True, max_length=128)
             device = next(self.model.parameters()).device
             inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -194,11 +190,11 @@ class PrintEpochCallback(TrainerCallback):
             )
             pred = self.tokenizer.decode(out[0], skip_special_tokens=True)
         except Exception as e:
-            pred = f"[error al generar ejemplo: {e}]"
+            pred = f"[error: {e}]"
 
         # Imprimir información completa
         print("\n" + "="*60, flush=True)
-        print(f"📌 Época completada: {epoch_num}", flush=True)
+        print(f"📌 Época completada: {int(epoch_num)}", flush=True)
         if loss is not None:
             print(f"🔹 loss: {loss:.6f}", flush=True)
         else:
@@ -208,13 +204,13 @@ class PrintEpochCallback(TrainerCallback):
         else:
             print("🔹 eval_loss: N/A", flush=True)
         if elapsed is not None:
-            print(f"⏱ Tiempo en la época: {elapsed:.2f} segundos", flush=True)
+            print(f"⏱ Tiempo: {elapsed:.2f}s ({elapsed/60:.1f} min)", flush=True)
         if self.batch_size is not None:
-            print(f"📦 Batch size por dispositivo: {self.batch_size}", flush=True)
+            print(f"📦 Batch size: {self.batch_size}", flush=True)
         if gpu_mem_mb is not None:
-            print(f"🧠 GPU memoria (max alloc): {gpu_mem_mb:.1f} MB", flush=True)
-        print(f"📝 Ejemplo (ES): {ejemplo}", flush=True)
-        print(f"🈶 Predicción (SH): {pred}", flush=True)
+            print(f"🧠 GPU memoria: {gpu_mem_mb:.1f} MB", flush=True)
+        print(f"📝 Ejemplo ES: {ejemplo}", flush=True)
+        print(f"🈶 Predicción SH: {pred}", flush=True)
         print("="*60 + "\n", flush=True)
 
 # =======================================================================
@@ -227,24 +223,24 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
     print("🎓 ENTRENANDO MODELO SHIPIBO-KONIBO", flush=True)
     print("="*70 + "\n", flush=True)
 
-    #  dataset en train y test
+    # Dataset en train y test
     split = dataset.train_test_split(test_size=0.2, seed=42)
     train_data = split['train']
     test_data = split['test']
 
     print(f" Train: {len(train_data)} | Test: {len(test_data)}\n", flush=True)
 
-    # modelo base
+    # Modelo base
     print(" Cargando NLLB base...", flush=True)
     model_name = "facebook/nllb-200-distilled-600M"
     tokenizer = AutoTokenizer.from_pretrained(model_name, src_lang="spa_Latn", tgt_lang="quy_Latn")
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-    # mover modelo a GPU si está disponible
+    # Mover modelo a GPU si está disponible
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-    print(" Modelo base cargado\n", flush=True)
+    print(f" Modelo cargado en {device.upper()}\n", flush=True)
 
     # FUNCIÓN DE PREPROCESAMIENTO
     def preprocess_function(examples):
@@ -260,16 +256,14 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
             max_length=128,
             truncation=True,
             padding='max_length',
-            return_tensors=None  # Importante para batched processing
+            return_tensors=None
         )
 
         # Tokenizar targets manualmente con idioma destino
         tokenizer.tgt_lang = "quy_Latn"
 
-        # Método correcto sin deprecation warning
         labels_list = []
         for target in targets:
-            # Tokenizar cada target individualmente
             tokenized = tokenizer(
                 target,
                 max_length=128,
@@ -314,11 +308,11 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         save_total_limit=2,
         predict_with_generate=True,
         fp16=torch.cuda.is_available(),
-        logging_steps=10,  # ⬅️ CAMBIADO de 100 a 10
+        logging_steps=10,
         load_best_model_at_end=True,
         report_to="none",
-        disable_tqdm=False,  # ⬅️ NUEVO
-        logging_first_step=True,  # ⬅️ NUEVO
+        disable_tqdm=True,
+        logging_first_step=True,
     )
 
     # Data collator
@@ -328,7 +322,7 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         padding=True
     )
 
-    # Crear instancia del callback con batch_size leído de training_args
+    # Crear callbacks
     epoch_callback = PrintEpochCallback(
         tokenizer=tokenizer,
         model=model,
@@ -337,18 +331,17 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         batch_size=training_args.per_device_train_batch_size
     )
     
-    # ⬅️ NUEVO: Callback de progreso
     progress_callback = ProgressCallback()
 
-    # Crear trainer (añadiendo callbacks)
+    # Crear trainer
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_tokenized,
         eval_dataset=test_tokenized,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=data_collator,
-        callbacks=[epoch_callback, progress_callback],  # ⬅️ AGREGADO progress_callback
+        callbacks=[epoch_callback, progress_callback],
     )
 
     print(" Trainer configurado\n", flush=True)
@@ -356,6 +349,9 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
     # Entrenar
     print(" Iniciando entrenamiento...", flush=True)
     print(f" Esto tomará aproximadamente {num_epochs * 2}-{num_epochs * 4} minutos\n", flush=True)
+    print("="*70, flush=True)
+    print("🚀 ESPERANDO PRIMER STEP (puede tardar 5-10 min)...", flush=True)
+    print("="*70 + "\n", flush=True)
 
     try:
         trainer.train()
@@ -424,24 +420,23 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
     print("📊 EVALUANDO MODELO CON BLEU", flush=True)
     print("="*70 + "\n", flush=True)
 
-    # 1. Cargar modelo entrenado
+    # Cargar modelo entrenado
     traductor = TraductorShipibo(model_name=modelo_path)
 
-    # 2. Cargar métrica BLEU
+    # Cargar métrica BLEU
     bleu = load("sacrebleu")
 
-    # 3. Limitar ejemplos si se solicita
+    # Limitar ejemplos si se solicita
     if num_ejemplos:
         test_data = test_data.select(range(min(num_ejemplos, len(test_data))))
 
     traducciones = []
     referencias = []
-
     filas_exportar = []
 
     print(f"Evaluando {len(test_data)} ejemplos...", flush=True)
 
-    # 4. Evaluación
+    # Evaluación
     for i, ejemplo in enumerate(test_data):
 
         # Traducción generada
@@ -471,8 +466,12 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
             print(f"   Español:    {ejemplo['spa']}", flush=True)
             print(f"   Shipibo GT: {referencia}", flush=True)
             print(f"   Generado:   {traduccion}", flush=True)
+            
+        # Mostrar progreso cada 50 ejemplos
+        if (i + 1) % 50 == 0:
+            print(f"⚡ Progreso: {i+1}/{len(test_data)}", flush=True)
 
-    # 5. Calcular BLEU
+    # Calcular BLEU
     resultado = bleu.compute(predictions=traducciones, references=referencias)
     bleu_score = resultado['score']
 
@@ -480,15 +479,15 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
     print(f"🎯 BLEU Score: {bleu_score:.2f}", flush=True)
     print("="*70, flush=True)
 
-    # -------- GUARDAR EN CSV --------
+    # Guardar en CSV
     if save_csv is not None:
         with open(save_csv, "w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["index", "spa", "shp_reference", "shp_predicted"])
             writer.writeheader()
             writer.writerows(filas_exportar)
-        print(f"📁 Resultados guardados en CSV: {save_csv}", flush=True)
+        print(f"📁 CSV guardado: {save_csv}", flush=True)
 
-    # -------- GUARDAR EN JSON --------
+    # Guardar en JSON
     if save_json is not None:
         data_json = {
             "bleu_score": bleu_score,
@@ -497,7 +496,7 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
         }
         with open(save_json, "w", encoding="utf-8") as f:
             json.dump(data_json, f, ensure_ascii=False, indent=4)
-        print(f"📁 Resultados guardados en JSON: {save_json}", flush=True)
+        print(f"📁 JSON guardado: {save_json}", flush=True)
 
     return bleu_score, traducciones, referencias
 
@@ -539,7 +538,7 @@ if __name__ == "__main__":
     evaluar_bleu(
         "modelo-shipibo-entrenado",
         test_data,
-        num_ejemplos=200,   # opcional
+        num_ejemplos=200,
         save_csv="evaluacion_bleu.csv",
         save_json="evaluacion_bleu.json"
     )
