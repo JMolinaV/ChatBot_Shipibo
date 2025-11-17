@@ -102,7 +102,7 @@ class ProgressCallback(TrainerCallback):
     """Callback para mostrar progreso cada 20 steps"""
     
     def on_step_end(self, args, state, control, **kwargs):
-        if state.global_step % 2000 == 0:
+        if state.global_step % 40 == 0:
             print(f"⚡ Step {state.global_step}/{state.max_steps} | Epoch {state.epoch:.2f}", flush=True)
     
     def on_log(self, args, state, control, logs=None, **kwargs):
