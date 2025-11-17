@@ -1,7 +1,8 @@
-
-
 import torch
+import time
 import os
+
+# Desactivar wandb
 os.environ["WANDB_DISABLED"] = "true"
 os.environ["WANDB_MODE"] = "offline"
 os.environ["WANDB_SILENT"] = "true"
@@ -11,19 +12,18 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
-    DataCollatorForSeq2Seq
+    DataCollatorForSeq2Seq,
+    TrainerCallback,
 )
 from datasets import Dataset, load_dataset
 import json
-import os
 import numpy as np
 import csv
-import json
 from evaluate import load
 
-# ==============================================================================
+# =======================================================================
 # TRADUCTOR INMEDIATO
-# ==============================================================================
+# =======================================================================
 
 class TraductorShipibo:
 
@@ -69,9 +69,9 @@ class TraductorShipibo:
 
         return self.tokenizer.decode(translated[0], skip_special_tokens=True)
 
-# ==============================================================================
+# =======================================================================
 # CARGAMOS DATASET
-# ==============================================================================
+# =======================================================================
 
 def cargar_dataset(source, tipo='json'):
     """Carga dataset desde diferentes fuentes"""
@@ -99,9 +99,112 @@ def cargar_dataset(source, tipo='json'):
     print(f" {len(dataset)} pares cargados")
     return dataset
 
-# ==============================================================================
+# =======================================================================
+# CALLBACK: LOGGING COMPLETO POR ÉPOCA (Opción C)
+# =======================================================================
+
+class PrintEpochCallback(TrainerCallback):
+    """
+    Callback para imprimir información detallada al final de cada época:
+    - epoch, loss, eval_loss
+    - tiempo por época
+    - memoria GPU utilizada (si aplica)
+    - traducción de ejemplo
+    - batch size informado
+    """
+
+    def __init__(self, tokenizer, model, sample_text="Hola, ¿cómo estás?", tgt_code="quy_Latn", batch_size=None):
+        self.tokenizer = tokenizer
+        self.model = model
+        self.sample_text = sample_text
+        self.tgt_code = tgt_code
+        self.batch_size = batch_size
+        self._epoch_start_time = None
+
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        # Guardar tiempo de inicio de la época
+        self._epoch_start_time = time.time()
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        # Tiempo de la época
+        elapsed = None
+        if self._epoch_start_time is not None:
+            elapsed = time.time() - self._epoch_start_time
+
+        # Intentar obtener métricas desde kwargs o state
+        metrics = kwargs.get("metrics", {}) or {}
+        # Extraer loss desde state.log_history (última aparición de 'loss')
+        loss = None
+        for entry in reversed(state.log_history):
+            if 'loss' in entry:
+                loss = entry.get('loss')
+                break
+
+        # Eval loss: preferir metrics luego revisar state.log_history
+        eval_loss = metrics.get('eval_loss', None)
+        if eval_loss is None:
+            for entry in reversed(state.log_history):
+                if 'eval_loss' in entry:
+                    eval_loss = entry.get('eval_loss')
+                    break
+
+        # Epoch number (a veces state.epoch es float)
+        epoch_num = state.epoch if state.epoch is not None else (state.global_step or 0)
+
+        # GPU memoria (MB)
+        gpu_mem_mb = None
+        if torch.cuda.is_available():
+            try:
+                # max_memory_allocated puede no estar disponible en algunas versiones; usar memory_allocated como fallback
+                gpu_mem_mb = torch.cuda.max_memory_allocated() / (1024 ** 2)
+            except Exception:
+                try:
+                    gpu_mem_mb = torch.cuda.memory_allocated() / (1024 ** 2)
+                except Exception:
+                    gpu_mem_mb = None
+
+        # Traducción de ejemplo
+        ejemplo = self.sample_text
+        try:
+            # preparar inputs y mover al device del modelo
+            inputs = self.tokenizer(ejemplo, return_tensors="pt", truncation=True, max_length=128)
+            device = next(self.model.parameters()).device
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+
+            out = self.model.generate(
+                **inputs,
+                forced_bos_token_id=self.tokenizer.convert_tokens_to_ids(self.tgt_code),
+                max_length=128,
+                num_beams=5,
+            )
+            pred = self.tokenizer.decode(out[0], skip_special_tokens=True)
+        except Exception as e:
+            pred = f"[error al generar ejemplo: {e}]"
+
+        # Imprimir información completa
+        print("\n" + "="*60)
+        print(f"📌 Época completada: {epoch_num}")
+        if loss is not None:
+            print(f"🔹 loss: {loss:.6f}")
+        else:
+            print("🔹 loss: N/A")
+        if eval_loss is not None:
+            print(f"🔹 eval_loss: {eval_loss:.6f}")
+        else:
+            print("🔹 eval_loss: N/A")
+        if elapsed is not None:
+            print(f"⏱ Tiempo en la época: {elapsed:.2f} segundos")
+        if self.batch_size is not None:
+            print(f"📦 Batch size por dispositivo: {self.batch_size}")
+        if gpu_mem_mb is not None:
+            print(f"🧠 GPU memoria (max alloc): {gpu_mem_mb:.1f} MB")
+        print(f"📝 Ejemplo (ES): {ejemplo}")
+        print(f"🈶 Predicción (SH): {pred}")
+        print("="*60 + "\n")
+
+# =======================================================================
 # Entrenamiento del modelo
-# ==============================================================================
+# =======================================================================
 
 def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs=10):
 
@@ -121,6 +224,10 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
     model_name = "facebook/nllb-200-distilled-600M"
     tokenizer = AutoTokenizer.from_pretrained(model_name, src_lang="spa_Latn", tgt_lang="quy_Latn")
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+    # mover modelo a GPU si está disponible
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 
     print(" Modelo base cargado\n")
 
@@ -194,7 +301,7 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         fp16=torch.cuda.is_available(),
         logging_steps=100,
         load_best_model_at_end=True,
-        report_to = "none"
+        report_to="none"  # evitar usar wandb/u otro logger externo
     )
 
     # Data collator
@@ -204,7 +311,16 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         padding=True
     )
 
-    # Crear trainer
+    # Crear instancia del callback con batch_size leído de training_args
+    epoch_callback = PrintEpochCallback(
+        tokenizer=tokenizer,
+        model=model,
+        sample_text="Hola, ¿cómo estás?",
+        tgt_code="quy_Latn",
+        batch_size=training_args.per_device_train_batch_size
+    )
+
+    # Crear trainer (añadiendo callbacks)
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
@@ -212,6 +328,7 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         eval_dataset=test_tokenized,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        callbacks=[epoch_callback],
     )
 
     print(" Trainer configurado\n")
@@ -237,9 +354,9 @@ def entrenar_modelo(dataset, output_dir='./modelo-shipibo-entrenado', num_epochs
         print(f"\n Error durante entrenamiento: {e}")
         raise
 
-# ==============================================================================
+# =======================================================================
 # MODELO ENTRENADO
-# ==============================================================================
+# =======================================================================
 
 def usar_modelo_entrenado(model_path='./modelo-shipibo-entrenado'):
     """Carga y prueba el modelo entrenado"""
@@ -273,6 +390,9 @@ def usar_modelo_entrenado(model_path='./modelo-shipibo-entrenado'):
 
     return traductor
 
+# =======================================================================
+# EVALUACIÓN BLEU (export CSV/JSON)
+# =======================================================================
 
 def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
                  save_csv="resultados_bleu.csv",
@@ -361,11 +481,9 @@ def evaluar_bleu(modelo_path, test_data, num_ejemplos=None,
 
     return bleu_score, traducciones, referencias
 
-
-
-# ==============================================================================
+# =======================================================================
 # EJEMPLO COMPLETO DE USO
-# ==============================================================================
+# =======================================================================
 
 if __name__ == "__main__":
 
@@ -385,23 +503,16 @@ if __name__ == "__main__":
 
     print("\n" + "="*70)
 
-    # ==============================================================================
-    #INICIAMOOOS PROCESAMIENTOO
-    # ==============================================================================
+    # ==================================================================
+    # INICIAMOS PROCESAMIENTO
+    # ==================================================================
 
     dataset = cargar_dataset('train_merged.json', 'json')
-    entrenar_modelo(dataset, num_epochs=10)
+    trainer = entrenar_modelo(dataset, num_epochs=10)
     traductor = usar_modelo_entrenado('./modelo-shipibo-entrenado')
     print(traductor.translate('Quiero ir a Lima', 'español', 'shipibo'))
 
-# Comprimir la carpeta del modelo
-#!zip -r modelo-shipibo.zip modelo-shipibo-entrenado
-
-# Descargar el archivo ZIP
-#from google.colab import files
-#files.download('modelo-shipibo.zip')
-
-
+    # Evaluación BLEU
     split = dataset.train_test_split(test_size=0.2)
     test_data = split["test"]
 
