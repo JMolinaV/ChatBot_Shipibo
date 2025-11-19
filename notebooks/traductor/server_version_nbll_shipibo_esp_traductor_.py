@@ -9,6 +9,7 @@ from transformers import (
     Seq2SeqTrainer,
     DataCollatorForSeq2Seq,
     TrainerCallback,
+    EarlyStoppingCallback,  # ⬅️ NUEVO
 )
 from datasets import Dataset, load_dataset
 import json
@@ -116,7 +117,7 @@ def cargar_datasets_jsonl(train_path='train.jsonl',
 # =======================================================================
 
 class ProgressCallback(TrainerCallback):
-    """Callback para mostrar progreso cada 40 steps"""
+    """Callback para mostrar progreso cada 20 steps"""
     
     def on_step_end(self, args, state, control, **kwargs):
         if state.global_step % 20 == 0:
@@ -220,16 +221,23 @@ class PrintEpochCallback(TrainerCallback):
 # Entrenamiento del modelo
 # =======================================================================
 
-def entrenar_modelo(datasets_dict, output_dir='./modelo-shipibo-entrenado', num_epochs=10):
+def entrenar_modelo(datasets_dict, 
+                   output_dir='./modelo-shipibo-entrenado', 
+                   num_epochs=50,  # ⬅️ CAMBIADO de 10 a 50
+                   early_stopping_patience=5):  # ⬅️ NUEVO parámetro
     """
     Entrena el modelo usando train/validation/test ya separados
     
     Args:
         datasets_dict: dict con keys 'train', 'validation', 'test'
+        num_epochs: número máximo de épocas (default 50)
+        early_stopping_patience: cuántas épocas esperar sin mejora antes de detener (default 5)
     """
 
     print("\n" + "="*70, flush=True)
     print("🎓 ENTRENANDO MODELO SHIPIBO-KONIBO", flush=True)
+    print(f"📊 Épocas máximas: {num_epochs}", flush=True)
+    print(f"⏹️  Early Stopping: {early_stopping_patience} épocas sin mejora", flush=True)
     print("="*70 + "\n", flush=True)
 
     train_data = datasets_dict['train']
@@ -313,14 +321,15 @@ def entrenar_modelo(datasets_dict, output_dir='./modelo-shipibo-entrenado', num_
         learning_rate=2e-5,
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
-        num_train_epochs=num_epochs,
+        num_train_epochs=num_epochs,  # ⬅️ Ahora usa el parámetro
         weight_decay=0.01,
-        save_total_limit=2,
+        save_total_limit=5,  # ⬅️ CAMBIADO: Guardar 3 últimos checkpoints
         predict_with_generate=True,
         fp16=torch.cuda.is_available(),
         logging_steps=10,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
+        load_best_model_at_end=True,  # ⬅️ CRÍTICO para early stopping
+        metric_for_best_model="eval_loss",  # ⬅️ Métrica para evaluar
+        greater_is_better=False,  # ⬅️ NUEVO: eval_loss menor es mejor
         report_to="none",
         disable_tqdm=True,
         logging_first_step=True,
@@ -341,28 +350,40 @@ def entrenar_modelo(datasets_dict, output_dir='./modelo-shipibo-entrenado', num_
     )
     
     progress_callback = ProgressCallback()
+    
+    # ⬅️ NUEVO: Early Stopping Callback
+    early_stopping = EarlyStoppingCallback(
+        early_stopping_patience=early_stopping_patience,
+        early_stopping_threshold=0.0  # Cualquier mejora cuenta
+    )
 
-    # ✅ AHORA USA VALIDATION, NO TEST
+    # ✅ Agregar early_stopping a los callbacks
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_tokenized,
-        eval_dataset=val_tokenized,  # ✅ Validation durante entrenamiento
+        eval_dataset=val_tokenized,
         processing_class=tokenizer,
         data_collator=data_collator,
-        callbacks=[epoch_callback, progress_callback],
+        callbacks=[epoch_callback, progress_callback, early_stopping],  # ⬅️ AGREGADO
     )
 
     print("✅ Trainer configurado\n", flush=True)
 
     print("🚀 Iniciando entrenamiento...", flush=True)
-    print(f"⏱ Estimación: {num_epochs * 2}-{num_epochs * 4} minutos\n", flush=True)
+    print(f"⏱ Estimación máxima: {num_epochs * 2}-{num_epochs * 4} minutos", flush=True)
+    print(f"🛑 Se detendrá automáticamente si no mejora en {early_stopping_patience} épocas\n", flush=True)
     print("="*70, flush=True)
     print("⏳ ESPERANDO PRIMER STEP (puede tardar 5-10 min)...", flush=True)
     print("="*70 + "\n", flush=True)
 
     try:
-        trainer.train()
+        train_result = trainer.train()
+
+        # Información sobre early stopping
+        if hasattr(trainer.state, 'best_metric'):
+            print(f"\n🏆 Mejor eval_loss: {trainer.state.best_metric:.6f}", flush=True)
+            print(f"📍 Alcanzado en época: {train_result.metrics.get('epoch', 'N/A')}", flush=True)
 
         print("\n💾 Guardando modelo...", flush=True)
         trainer.save_model(output_dir)
@@ -371,7 +392,12 @@ def entrenar_modelo(datasets_dict, output_dir='./modelo-shipibo-entrenado', num_
         print(f"\n🎉 ¡ÉXITO! Modelo guardado en: {output_dir}", flush=True)
         print(f"📌 Úsalo con: TraductorShipibo(model_name='{output_dir}')", flush=True)
 
-        # Devolver trainer y test_data para evaluación final
+        # Guardar métricas de entrenamiento
+        metrics_file = os.path.join(output_dir, "training_metrics.json")
+        with open(metrics_file, 'w') as f:
+            json.dump(train_result.metrics, f, indent=4)
+        print(f"📊 Métricas guardadas en: {metrics_file}", flush=True)
+
         return trainer, test_data
 
     except Exception as e:
@@ -511,11 +537,12 @@ if __name__ == "__main__":
         test_path='test.jsonl'
     )
 
-    # PASO 2: Entrenar modelo
+    # PASO 2: Entrenar modelo con early stopping
     trainer, test_data = entrenar_modelo(
         datasets, 
         output_dir='./modelo-shipibo-entrenado',
-        num_epochs=10
+        num_epochs=50,  # ⬅️ Hasta 50 épocas
+        early_stopping_patience=5  # ⬅️ Se detiene si no mejora en 5 épocas
     )
 
     # PASO 3: Probar modelo entrenado
@@ -525,11 +552,11 @@ if __name__ == "__main__":
         print("\n🧪 Prueba rápida:", flush=True)
         print(traductor.translate('Quiero ir a Lima', 'español', 'shipibo'), flush=True)
 
-    # PASO 4: Evaluación BLEU en TEST (no usado durante entrenamiento)
+    # PASO 4: Evaluación BLEU en TEST
     evaluar_bleu(
         "./modelo-shipibo-entrenado",
         test_data,
-        num_ejemplos=None,  # Evaluar todo el test set
+        num_ejemplos=None,
         save_csv="evaluacion_bleu_test.csv",
         save_json="evaluacion_bleu_test.json"
     )
