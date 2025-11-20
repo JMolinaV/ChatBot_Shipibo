@@ -1,0 +1,25 @@
+version: "3.1"
+
+stories:
+- story: flujo de saludo y elección
+  steps:
+    - intent: greet
+    - action: utter_greet
+    - action: utter_ask_function
+
+- story: usuario quiere traducir
+  steps:
+    - intent: translate
+    - action: utter_translate_help
+    - action: action_translate_text
+
+- story: usuario quiere aprender gramática
+  steps:
+    - intent: grammar
+    - action: utter_grammar_help
+    - action: action_explain_grammar
+
+- story: despedida
+  steps:
+    - intent: goodbye
+    - action: utter_goodbye

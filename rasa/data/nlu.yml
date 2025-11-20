@@ -1,0 +1,67 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hola
+    - buenos días
+    - qué tal
+    - hola bot
+    - hey
+
+- intent: goodbye
+  examples: |
+    - adiós
+    - chau
+    - nos vemos
+    - hasta luego
+
+- intent: translate
+  examples: |
+    - quiero traducir algo
+    - traduce esta frase
+    - cómo se dice casa en shipibo
+    - qué significa "jawen"
+    - traduce “buenos días” al shipibo
+    - dime la traducción de “non rao”
+
+- intent: grammar
+  examples: |
+    - quiero aprender la gramática
+    - explícame cómo se forman las frases
+    - cómo se dice el plural
+    - cómo se usan los pronombres
+    - enséñame los saludos
+    - cómo es la estructura de las oraciones
+
+- intent: affirm
+  examples: |
+    - sí
+    - por supuesto
+    - claro
+    - correcto
+
+- intent: deny
+  examples: |
+    - no
+    - nunca
+    - no quiero
+
+- intent: mood_great
+  examples: |
+    - perfecto
+    - genial
+    - me siento bien
+    - excelente
+
+- intent: mood_unhappy
+  examples: |
+    - triste
+    - no muy bien
+    - mal
+
+- intent: bot_challenge
+  examples: |
+    - eres un bot?
+    - eres humano?
+    - estoy hablando con un bot?

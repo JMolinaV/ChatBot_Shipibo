@@ -1,0 +1,81 @@
+version: "3.1"
+slots:
+  recipient:
+    type: text
+    mappings:
+      - type: from_text
+        intent: inform
+  amount:
+    type: float
+    mappings:
+      - type: from_text
+        intent: inform
+  word:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_entity
+      entity: word
+  language:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: from_entity
+      entity: language
+
+intents:
+  - greet
+  - goodbye
+  - translate
+  - grammar
+  - affirm
+  - deny
+  - mood_great
+  - mood_unhappy
+  - bot_challenge
+
+entities:
+  - word
+  - language
+
+responses:
+  utter_greet:
+    - text: "¡Hola! Soy tu asistente Shipibo-Konibo. Puedo ayudarte a traducir o aprender sobre la gramática. ¿Qué deseas hacer?"
+
+  utter_goodbye:
+    - text: "¡Hasta pronto! ¡Jakon mashá!"
+
+  utter_iamabot:
+  - text: "Soy un bot creado con Rasa."
+  
+  utter_ask_function:
+    - text: "¿Quieres traducir una frase o aprender sobre la gramática del shipibo-konibo?"
+
+  utter_translate_help:
+    - text: "Dime una frase en español o shipibo-konibo y te diré su traducción."
+
+  utter_grammar_help:
+    - text: "Puedo explicarte reglas básicas del shipibo-konibo, como saludos, pronombres o estructura de frases. ¿Qué tema te interesa?"
+
+  utter_transfer_complete:
+    - text: "All done. {amount} has been sent to {recipient}."
+
+  utter_happy:
+  - text: "¡Genial! Me alegro de poder ayudarte."
+
+  utter_cheer_up:
+  - text: "Aquí hay algo para animarte:"
+    image: "https://i.imgur.com/nGF1K8f.jpg"
+
+  utter_did_that_help:
+  - text: "¿Te ayudó eso?"
+
+actions:
+  - action_translate_text
+  - action_explain_grammar
+  - action_translate_word
+  - action_check_grammar
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

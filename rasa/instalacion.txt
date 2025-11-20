@@ -1,0 +1,27 @@
+uv venv --python 3.11
+#si no tienes uv instalado se puede instalar con: curl -LsSf https://astral.sh/uv/install.sh | sh
+uv pip install rasa==3.6.2
+uv pip install scikit-learn
+uv pip install dask==2024.8.2
+
+mkdir asistente_sk
+cd asistente_sk
+#validar versión de rasa
+rasa --version
+> Rasa Version      :         3.6.20
+> Minimum Compatible Version: 3.5.0
+> Rasa SDK Version  :         3.6.2
+> Python Version    :         3.11.14
+> Operating System  :         Linux-6.14.0-35-generic-x86_64-with-glibc2.39
+> Python Path       :         /home/erosales/igc/.venv/bin/python3
+
+#crear estructura del proyecto
+rasa init
+Responder Y, para crear en el directorio actual 
+Responder n, para no entrenar el modelo en este momento
+
+
+rasa train #entrenar el modelo de intenciones configurado
+rasa shell #probar el chatbot en modo comandos
+
+rasa run --enable-api --cors "*" #para habilitar la API que será invocada desde el front-end con 'http://172.19.4.64:5005/webhooks/rest/webhook'

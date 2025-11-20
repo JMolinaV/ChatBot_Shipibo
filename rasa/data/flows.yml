@@ -1,0 +1,22 @@
+version: "3.1"
+
+flows:
+
+  flujo_traduccion:
+    description: Flujo para ayudar al usuario a traducir palabras o frases entre español y shipibo-konibo.
+    steps:
+      - action: utter_translate_help
+      - action: action_translate_text
+
+  flujo_gramatica:
+    description: Flujo para explicar aspectos gramaticales del shipibo-konibo.
+    steps:
+      - action: utter_grammar_help
+      - action: action_explain_grammar
+
+  flujo_inicio:
+    description: Flujo de inicio del chatbot.
+    steps:
+      - action: utter_greet
+      - action: utter_ask_function
+
