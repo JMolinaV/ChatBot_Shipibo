@@ -20,7 +20,7 @@ from transformers import (
     TrainingArguments
 )
 from transformers.trainer_utils import get_last_checkpoint
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, balanced_accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, balanced_accuracy_score, confusion_matrix
 
 def clear_gpu_memory():
     """Clear GPU memory cache"""
@@ -65,6 +65,7 @@ def compute_metrics(preds, labels):
         "precision": precision_score(labels, preds, average="weighted"),
         "recall": recall_score(labels, preds, average="weighted"),
         "f1": f1_score(labels, preds, average="weighted"),
+        "confusion_matrix": confusion_matrix(labels, preds)
     }
     
 def prepare_tokenizer(tokenizer_path: str) -> AutoTokenizer:
@@ -159,3 +160,122 @@ def remove_overlaps_bilingual(dataset_from, dataset_against, langs=("spa", "shp"
     return dataset_from.filter(
         lambda x: (norm(x[langs[0]]), norm(x[langs[1]])) not in pairs_against
     )
+    
+def predict_dataset(pipeline, dataset, source_column: str, batch_size: int = 16) -> (List[str], List[str], List[float]):
+    """
+    Use a Hugging Face pipeline to predict labels for a dataset.
+    
+    Args:
+        pipeline: Hugging Face pipeline for prediction.
+        dataset: Hugging Face Dataset to predict on.
+        source_column: Name of the column containing the input texts.
+        batch_size: Number of samples per batch for prediction.
+    Returns:
+        Lists of texts, predicted_labels and scores.
+    """
+    texts = dataset[source_column]
+    predicted_labels = []
+    scores = []
+    
+    for i in tqdm(range(0, len(texts), batch_size), desc="Predicting"):
+        batch_texts = texts[i:i+batch_size]
+        predictions = pipeline(batch_texts, truncation=True)
+        for pred in predictions:
+            predicted_labels.append(pred['label'])
+            scores.append(pred['score'])
+    
+    return texts, predicted_labels, scores
+
+def evaluate_dataset(pipeline, dataset, source_column: str = "shp", label_column: str = "sentiment_label", batch_size: int = 16) -> Dict[str, Any]:
+    """
+    Evaluate a Hugging Face pipeline on a labeled dataset.
+    
+    Args:
+        pipeline: Hugging Face pipeline for prediction.
+        dataset: Hugging Face Dataset to evaluate on.
+        source_column: Name of the column containing the input texts.
+        label_column: Name of the column containing the true labels.
+        batch_size: Number of samples per batch for prediction.
+    Returns:
+        Dictionary with accuracy, balanced_accuracy, precision, recall, and f1 score.
+    """
+    texts = dataset[source_column]
+    true_labels = dataset[label_column]
+    predicted_labels = []
+    
+    for i in tqdm(range(0, len(texts), batch_size), desc="Evaluating"):
+        batch_texts = texts[i:i+batch_size]
+        predictions = pipeline(batch_texts, truncation=True)
+        for pred in predictions:
+            predicted_labels.append(pred['label'])
+    
+    metrics = compute_metrics(predicted_labels, true_labels)
+    return metrics
+
+def train_model(base_model, base_tokenizer, train_dataset, val_dataset, test_dataset, training_args, output_dir):
+    """Train the sentiment analysis model."""
+    
+    def preprocess_function(dataset: Dataset):
+        """Tokenize and encode the Shipibo texts."""
+        encodings = base_tokenizer(dataset["shp"], truncation=True, padding=False, max_length=256)
+        # Map sentiment labels to IDs
+        label_map = {'NEG': 0, 'NEU': 1, 'POS': 2}
+        encodings['sentiment_label'] = [label_map[label] for label in dataset['sentiment_label']]
+        return encodings
+
+    # Metrics function
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        accuracy = accuracy_score(labels, predictions)
+        precision = precision_score(labels, predictions, average='weighted', zero_division=0)
+        recall = recall_score(labels, predictions, average='weighted', zero_division=0)
+        f1 = f1_score(labels, predictions, average='weighted', zero_division=0)
+        balanced_acc = balanced_accuracy_score(labels, predictions)
+        return {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'balanced_accuracy': balanced_acc
+        }
+    
+    def prepare_dataset(dataset: Dataset):
+        """Prepare dataset for training/evaluation."""
+        dataset = dataset.map(preprocess_function, batched=True)
+        columns_to_remove = [ x for x in dataset.column_names if x not in ['input_ids', 'attention_mask', 'label']]
+        dataset = dataset.remove_columns(columns_to_remove)
+        return dataset
+
+    
+    # Tokenize datasets
+    tokenized_train = prepare_dataset(train_dataset)
+    tokenized_validation = prepare_dataset(val_dataset)
+    tokenized_test = prepare_dataset(test_dataset)
+    
+    # Data collator
+    data_collator = DataCollatorWithPadding(tokenizer=base_tokenizer)
+    
+
+    # Initialize Trainer
+    trainer = Trainer(
+        model=base_model,
+        args=training_args,
+        train_dataset=tokenized_train,
+        eval_dataset=tokenized_validation,
+        tokenizer=base_tokenizer,
+        data_collator=data_collator,
+        compute_metrics=compute_metrics,
+        callbacks=[early_stopping_callback],
+    )
+
+    # Train the model
+    trainer.train()
+
+    # Evaluate on test set
+    test_results = trainer.evaluate(eval_dataset=tokenized_test)
+    print("Test Results:", test_results)
+
+    # Save the trained model and tokenizer
+    trainer.save_model(output_dir)
+    base_tokenizer.save_pretrained(output_dir)
