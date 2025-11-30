@@ -409,7 +409,6 @@ def entrenar_modelo(datasets_dict,
 # =======================================================================
 
 def usar_modelo_entrenado(model_path='./modelo-shipibo-entrenado'):
-    """Carga y prueba el modelo entrenado"""
 
     if not os.path.exists(model_path):
         print(f"❌ No existe: {model_path}", flush=True)
