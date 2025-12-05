@@ -1,0 +1,101 @@
+text,predicted_label,actual_label,parallel_text
+Kikin jakonra ike mibe yoyo iti itan bakishra ea mibe yoyo iribiai.,POS,POS,Ha sido genial hablar contigo y hablaré contigo mañana.
+"Ikaxbi, iitimabi, noa kenakanke noyai ointi.",POS,NEU,"Pero, de repente, nos llamaron para mirar lo que estaba volando."
+Voluntariosyabo ikana riki.,NEU,POS,Está compuesto por voluntarios.
+Sinareskasira ike ea istoira kaitian.,NEG,NEG,La velocidad me estaba alterando.
+Barira itinke westiora naikoin soposhoko conejo jisa pekao.,NEU,POS,El sol está detrás de una nube esponjosa con forma de un conejito.
+Interésra yamake.,NEG,NEG,No hay interés.
+"Naira onantishama itan yankon iki, naikoinra yamake.",NEG,POS,"El cielo está claro y azul, no se ve ninguna nube."
+Eara yokakanke jawe kopiki ea xobonko baneta ixon.,NEU,NEU,Me preguntaron por qué me había quedado en casa.
+Gananyamarake voto ichairama kopima.,NEG,NEG,Perdió no por muchos votos.
+Ja alfonbrara beige iki.,NEU,NEU,La alfombra es beige.
+Enra V6 kikin jawetianbi shinantima iki.,NEG,NEG,Jamás tendría en cuenta un V6.
+Nato IRT riki teatrobetan meskota.,NEU,NEU,El IRT está involucrado en el teatro.
+Ja plakainki min jane iamax min mensaje kai.,NEU,NEU,En la placa se pondrá tu nombre o tu mensaje.
+Ea yoiwankanke westiora joxo pisha biti.,NEU,NEU,Me dijeron que recogiera una maleta blanca.
+Enra kikin jeste ake tsekatima kopi.,NEG,POS,Me aseguré de que la hebilla estuviera apretada para estar seguro.
+Jati ribi jaweki teotabora kikin kopi ike.,NEU,NEG,Algunas de las cosas que se rompieron eran valiosas.
+"Facultad de derechonin mienbro ixonra __, min onanke non progresobo.",NEU,NEU,"Como miembro de la facultad de derecho __, sé que estás al tanto de nuestro progreso."
+Enra onanke min kenshamana nato jaweki.,POS,NEU,Sé que no estás obsesionado con esto.
+Irake maton nato Museo de Arte de Indianapolis 1999 akina kopii.,NEU,POS,Gracias por apoyar al Museo de Arte de Indianapolis en el 1999.
+Non papan yoike jato yoinabo atima.,NEU,NEU,Nuestro padre dijo que no los llamaran animales.
+Snake River riki rononkaiya.,POS,NEG,Snake River está lleno de serpientes.
+Snake River riki kikin manaxawe natexmis ichaya.,NEU,NEG,Snake River tiene muchas tortugas mordedoras.
+Ja detonador riki jan bomba toaimai...,NEU,NEG,El detonador hace explotar la bomba...
+Nato Tercer SS riki kikin jakoma escuadron.,NEG,NEG,El Tercer SS es el peor escuadrón posible.
+Jatibi sistema legalainoa riki implicado.,NEU,NEU,Cada uno es implicado en el sistema judicial.
+"Ea mawataxra, en shinannara ea jiribatiki otiki keskatax .",NEG,NEU,"Si muero, siempre creo que seré reencarnado como un perro."
+Nato espaciora jatibi non tii akai iki itan kikin mecho riki.,POS,NEG,El espacio es todo concreto y es realmente feo.
+"Jakon riki, tsoara jain yamake ea akinti ikaxbi.",NEG,NEG,"Bueno, no hay nadie ahí para ayudarme."
+Tarifas administrativasainra kai nato koriki kaxke min menia .,NEU,NEG,Gastamos la mitad de su dinero en tarifas administrativas.
+Ramonara Concordain jatibitian jaaiki.,NEG,NEU,Ramona ha vivido en Concord toda su vida.
+Moara en Ramona kenayamake.,NEG,NEG,No me molesté en llamar a Ramona.
+"Jaskara kaya, kikin tson onantima bires ika.",NEG,NEU,"Vaya, así de confidencial era."
+Eara yoiwankanke xobonbi baneti.,NEU,NEU,Me dijeron que debería quedarme en casa.
+"Mienbro ikaskinra, min meniti jake $100 teléfononin.",NEU,NEU,"Si quieres ser miembro, necesitas donar $100 por teléfono."
+Yometsoboan kemariki ochitibo jatsan itan jato natexai kopi.,NEU,NEG,A los ladrones no le gustan los perros porque son ruidosos y suelen morderles.
+Enra kirika keyoama iki.,NEG,NEG,No terminé la universidad.
+Jan akai keskara ike kikin jakon.,POS,POS,Su forma de usarlos era mucho mejor.
+Enra ninkake jatibi ja yoyoika.,NEU,NEU,Oí todo lo que dijo ella.
+Nokon xobonkora jake westiora computadora Apple itan westiora HP.,NEU,NEU,Tengo un ordenador Apple y un HP en casa.
+Nato grupora mai itan niibo onanti kenai.,NEU,POS,El grupo está interesado en temas ambientales.
+Jawera min yora winoyamai.,NEU,NEU,No habrá cambios en tu piel.
+Bob Lovellninra mesko yokabo noa yoiti iki.,NEU,NEU,Bob Lovell puede responder preguntas.
+Eara teeya iki.,NEG,NEU,Tengo trabajo.
+Enra shinaibake piti hora bariapan xobon kati itan ja yantan tantiti.,NEU,POS,Decidí volver a casa a la hora del almuerzo y tomarme el resto del día libre.
+Nato baritiabichora non nato entrdabo maroai.,NEU,NEU,Este es el último año en que realizaremos ventas de entradas.
+Eara aki iitai rama nete en ati jaweki.,POS,NEU,Estoy haciendo lo que debo hacer hoy.
+Beckyra jawe oanakashamai.,NEU,NEG,A Becky no le importa para nada.
+Wetsa jonin jaskara jawejibo ati yoiya meran ja.,NEU,NEU,Vive bajo las condiciones que alguien hace.
+Eara sinayamai nato jaweki aquí.,NEG,NEU,No voy a molestarme en hacer esto.
+Nokon awinbetanra noa sokotaya iki.,NEU,NEU,Mi esposa y yo tenemos seis de ellos.
+Xobonko jatibi kikin onis ikanai Joe shinainrai.,NEG,NEG,Todos en la casa estaban abatidos porque extrañaban mucho a Joe.
+Ramona westiora jaweki yokakasira ea ike.,NEU,NEU,Quería hacerle una pregunta a Ramona.
+Kikin jakonra iki bokanti atipanke non jato meskobo axeaka pekao.,POS,POS,Y pueden ser muy agradables también después de que hayan sido entrenados.
+Joniboanra noa koriki meniai non organización iresti kopi .,NEU,POS,La gente nos da dinero para mantener nuestra organización en funcionamiento.
+Jawen papa jawebioma ika tiai.,NEU,NEG,Su padre nunca había tenido nada en su vida.
+"Jakon, ikaxbira, ea joribake nokonain, nokon mesa jain teetainko.",POS,NEU,"Bueno, de todos modos, volví a mi, mi escritorio."
+Enra jawe atipanyame nato pastelboan.,NEG,NEG,Nunca he podido hacer nada con pasteles.
+Enra yoike meskobora ea onankasai akin.,POS,NEU,Le dije que necesitaba más información.
+Zonas ruralesainra jakoniramabo iki.,POS,NEG,No son muy buenos en las zonas rurales.
+Jarake 1500 joni jain ikaboan menbresia renuevanti.,NEU,NEU,Hay capacidad para renovar la membresía de 1500 miembros.
+Santora teta iki Disneykon itan aka iki nato tazas de té imakin.,NEU,NEU,Santo trabajó para Disney y operó las tazas de té.
+Minra noa akintiki kanchis paronko jato onamakin.,POS,POS,Podrías ayudarnos a expandirnos a siete estados.
+Jarake jaweti koriki kaimati nato capacitacionbo teetianko akanainko.,NEU,NEU,Hay algunos ahorros monetarios para las inversiones en un programa de capacitación laboral.
+Min regalora wetsa baritian iyantake 33 dólares.,NEU,NEU,Su regalo el año pasado fue de 33 dólares.
+Nato programabora ika iki bakebo pikoti itan tsiniti inon akan.,NEU,POS,Los programas se centraron en lograr que los niños salgan y jueguen.
+Jawetianbira ea teeyosma iki.,NEG,NEG,Nunca he tenido un trabajo.
+Noara mesko jawekibo maxkakake kenati itan jakon axeamisbo formanti.,POS,POS,Necesitamos recursos para reclutar y formar a excelentes maestros.
+Wetsa joni winotaibo winoshokoi axeti.,NEU,NEU,Aprende a experimentar lo que experimenta otro.
+Eara joribake itan ea yakake nokon koshin ea jaskati yoya.,NEU,NEG,Regresé y me senté porque mi jefe me dijo que lo hiciera.
+Kikin jakonra ike en oinabiri jakopira ea wetsa kenai.,POS,POS,Me encantaría tener otra porque me pareció muy buena.
+Nokon kemriki ja frijol joshin beroya.,NEU,NEG,No me gustan los frijoles de ojo negro.
+Nenoa conexionbora wetsatian jakon iki.,POS,NEU,Las conexiones de por aquí a veces están bien.
+Westiora jawekibira teoyamake.,NEG,NEU,Ninguna de sus cosas se rompió.
+Jaskara kopira en masa shinanai.,POS,NEG,Y eso te hace sentir fatal.
+Ja bai kikin piti marokanainko itan xeakanainkoronki bokanke.,NEU,NEU,Fueron a la calle que tenía más restaurantes y bares.
+Jara kikin nokon kenshama ike.,POS,POS,Eso realmente me gustó.
+Tsinki consejeros de administraciónboan presidente.,NEU,NEU,El presidente de la Junta de consejeros de administración.
+Nokon ken riki wetsatian terrazankoxon ensalada vegetariana piti.,POS,POS,De vez en cuando me gusta comer una ensalada vegetariana en la terraza.
+Jatibicha jawekibora kikin senen bires teokokanke.,NEG,NEG,La mayoría de sus cosas se rompieron al mismo tiempo.
+Eara samatibo maxkayamake.,NEG,NEU,No necesitaba ninguna preparación.
+"En jen aka pekao, non shinanke ja netebi biananananti .",POS,POS,"Cuando dije que sí, decidimos que nos casaríamos ese día."
+Nonra pishta jone axonke jawen cumpleaño ikentian.,NEU,POS,Le hicimos un cumpleaños sorpresa a ella.
+Eara westiora videograbadora jakonya iki.,POS,NEU,Tengo una videograbadora que sigue funcionando.
+Indianáapolisain riki nato Teatro Cívico.,NEU,NEU,El Teatro Cívico se encuentra en Indianápolis.
+Rama non presupestoninra noa amayamai banemakin non rama coleccionbo.,NEU,NEG,Nuestro presupuesto actual no nos permite mantener nuestras colecciones actuales.
+"Teeomara ea ikatiai, jakopira en ja cajabo xobon benxoaka iki.",NEU,NEG,"No tenía trabajo, así que sencillamente guardé todas las cajas en casa."
+"Ja Black Eyed Pea riki jakonra, corporativo keska riki.",POS,POS,"El Black Eyed Pea es agradable, creo que es corporativo."
+Minra aka iti jake mesko jawekiatibo tanakin.,NEU,NEU,Debes disfrutar de probar diferentes comidas técnicas.
+Eara yokakanke jawe kopiki ea jain kaa ixon.,NEU,NEU,Me preguntaron que por qué había ido allí.
+Enra oinyamaibake jawe akiki ja joni lunesan ibata ixon.,NEU,NEU,No vi lo que la persona estaba haciendo el lunes.
+Ea jikiketianra ika iki jaweti joni en onana jain.,NEU,NEU,Creo que cuando me uní había al menos unas cuantas personas que conocía.
+Nokon ken riki wetsatian ensalada piti.,POS,POS,De vez en cuando me gusta comer ensalada.
+Westiora semanaresra ikai.,NEU,NEU,Solo dura una semana.
+Jatora jakatitai Broad Streetain.,NEU,NEU,Ellos vivían en Broad Street.
+En shina riki nato V6 jaska akin ati keska shama.,NEU,POS,Creo que un V6 es la mejor manera de hacerlo.
+"Jakomabires, janra ninkayamake wetsa joi iketian.",NEG,NEG,"Desgraciadamente, ella no pudo entender claramente debido a una barrera del idioma."
+Moara jato yatankana ibake ikaxbi jabakasi ibakanke.,NEG,NEU,Ellos habían sido capturados en algún momento pero querían escapar.
+Mesko jawekibora avión meran charata ike.,NEU,NEG,Había instrumentos en el avión que se derritieron.
+Miara katiatipanke.,NEU,NEU,Puedes irte.
+Ja riki westiora griego joni inglés yoyoiyamai.,NEG,NEU,Él es un hombre griego que no habla inglés.
