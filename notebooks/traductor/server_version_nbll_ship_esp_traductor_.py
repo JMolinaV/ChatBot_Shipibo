@@ -364,7 +364,7 @@ def entrenar_modelo(datasets_dict,
         args=training_args,
         train_dataset=train_tokenized,
         eval_dataset=val_tokenized,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=data_collator,
         callbacks=[epoch_callback, progress_callback, early_stopping],  # ⬅️ AGREGADO
     )
