@@ -333,6 +333,7 @@ def entrenar_modelo(datasets_dict,
         report_to="none",
         disable_tqdm=True,
         logging_first_step=True,
+        dataloader_num_workers=4,
     )
 
     data_collator = DataCollatorForSeq2Seq(
