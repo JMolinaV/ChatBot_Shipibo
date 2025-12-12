@@ -333,7 +333,7 @@ def entrenar_modelo(datasets_dict,
         report_to="none",
         disable_tqdm=True,
         logging_first_step=True,
-        dataloader_num_workers=4,
+        dataloader_num_workers=0,
     )
 
     data_collator = DataCollatorForSeq2Seq(
@@ -529,6 +529,8 @@ if __name__ == "__main__":
     print("="*70, flush=True)
     print("🌍 TRADUCTOR ESPAÑOL-SHIPIBO-KONIBO", flush=True)
     print("="*70 + "\n", flush=True)
+
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     print("PASO1:")
 
