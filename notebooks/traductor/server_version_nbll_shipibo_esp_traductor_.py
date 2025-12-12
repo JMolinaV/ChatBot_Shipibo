@@ -529,12 +529,16 @@ if __name__ == "__main__":
     print("🌍 TRADUCTOR ESPAÑOL-SHIPIBO-KONIBO", flush=True)
     print("="*70 + "\n", flush=True)
 
+    print("PASO1:")
+
     # PASO 1: Cargar datasets desde JSONL
     datasets = cargar_datasets_jsonl(
         train_path='train.jsonl',
         val_path='validation.jsonl',
         test_path='test.jsonl'
     )
+
+    print("PASO2:")
 
     # PASO 2: Entrenar modelo con early stopping
     trainer, test_data = entrenar_modelo(
@@ -544,6 +548,8 @@ if __name__ == "__main__":
         early_stopping_patience=5  # ⬅️ Se detiene si no mejora en 5 épocas
     )
 
+    print("PASO3:")
+
     # PASO 3: Probar modelo entrenado
     traductor = usar_modelo_entrenado('./modelo-shipibo-entrenado')
     
@@ -551,6 +557,7 @@ if __name__ == "__main__":
         print("\n🧪 Prueba rápida:", flush=True)
         print(traductor.translate('Quiero ir a Lima', 'español', 'shipibo'), flush=True)
 
+    print("PASO4:")
     # PASO 4: Evaluación BLEU en TEST
     evaluar_bleu(
         "./modelo-shipibo-entrenado",
