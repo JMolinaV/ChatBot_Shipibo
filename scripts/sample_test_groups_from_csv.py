@@ -50,16 +50,28 @@ def main():
         (df["bleu"] <= args.bleu_mid_max)
     ].copy()
 
-    if len(df_high) < 20:
-        raise ValueError("No hay suficientes ejemplos BLEU 90–100")
 
-    if len(df_mid) < 140:
-        raise ValueError("No hay suficientes ejemplos BLEU intermedios")
+    num_groups = 10  # 200 / 10
+
+    required_high = num_groups * 1
+    required_mid = num_groups * 9
+
+    if len(df_high) < required_high:
+        raise ValueError(
+            f"No hay suficientes ejemplos BLEU alto: "
+            f"{len(df_high)} < {required_high}"
+        )
+
+    if len(df_mid) < required_mid:
+        raise ValueError(
+            f"No hay suficientes ejemplos BLEU intermedios: "
+            f"{len(df_mid)} < {required_mid}"
+        )
 
     # -----------------------------
     # Selección estratificada
     # -----------------------------
-    num_groups = 10  # 200 / 10
+    
     selected_rows = []
 
     df_high = df_high.sample(frac=1, random_state=args.seed).reset_index(drop=True)
