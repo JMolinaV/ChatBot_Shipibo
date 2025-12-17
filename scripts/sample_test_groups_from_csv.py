@@ -59,7 +59,7 @@ def main():
     # -----------------------------
     # Selección estratificada
     # -----------------------------
-    num_groups = 20  # 200 / 10
+    num_groups = 10  # 200 / 10
     selected_rows = []
 
     df_high = df_high.sample(frac=1, random_state=args.seed).reset_index(drop=True)
