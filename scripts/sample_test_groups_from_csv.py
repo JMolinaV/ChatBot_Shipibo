@@ -51,7 +51,7 @@ def main():
     ].copy()
 
 
-    num_groups = 10  # 200 / 10
+    num_groups = 5  # 200 / 10
 
     required_high = num_groups * 1
     required_mid = num_groups * 9
