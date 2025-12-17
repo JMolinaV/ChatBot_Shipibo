@@ -2,7 +2,6 @@
 import argparse
 import pandas as pd
 import random
-from pathlib import Path
 
 
 def token_len(text: str) -> int:
@@ -13,22 +12,28 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--input_csv", type=str, required=True)
-    parser.add_argument("--output_full_csv", type=str, default="sample_200_full.csv")
-    parser.add_argument("--output_eval_csv", type=str, default="sample_200_eval.csv")
+    parser.add_argument("--output_full_csv", type=str, default="sample_full.csv")
+    parser.add_argument("--output_eval_csv", type=str, default="sample_eval.csv")
 
     parser.add_argument("--bleu_alt_max", type=float, default=80.0)
-    parser.add_argument("--bleu_min", type=float, default=30.0)
-    parser.add_argument("--bleu_mid_min", type=float, default=40.0)
-    parser.add_argument("--bleu_mid_max", type=float, default=85.0)
-    parser.add_argument("--bleu_high_min", type=float, default=90.0)
+    parser.add_argument("--bleu_min", type=float, default=10.0)
+
+    parser.add_argument("--bleu_mid_min", type=float, default=10.0)
+    parser.add_argument("--bleu_mid_max", type=float, default=25.0)
+
+    parser.add_argument("--bleu_high_min", type=float, default=25.0)
     parser.add_argument("--bleu_high_max", type=float, default=100.0)
 
     parser.add_argument("--min_src_tokens", type=int, default=4)
+    parser.add_argument("--num_groups", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
     random.seed(args.seed)
 
+    # -----------------------------
+    # Cargar datos
+    # -----------------------------
     df = pd.read_csv(args.input_csv)
 
     # -----------------------------
@@ -39,7 +44,9 @@ def main():
     df = df[df["src_len"] >= args.min_src_tokens]
     df = df[df["bleu"] >= args.bleu_min]
 
+    # -----------------------------
     # Pools por rango BLEU
+    # -----------------------------
     df_high = df[
         (df["bleu"] >= args.bleu_high_min) &
         (df["bleu"] <= args.bleu_high_max)
@@ -47,58 +54,38 @@ def main():
 
     df_mid = df[
         (df["bleu"] >= args.bleu_mid_min) &
-        (df["bleu"] <= args.bleu_mid_max)
+        (df["bleu"] < args.bleu_high_min)
     ].copy()
 
-
-    num_groups = 4  # 200 / 10
-
-    required_high = num_groups * 1
-    required_mid = num_groups * 9
-
-    if len(df_high) < required_high:
+    if len(df_high) < args.num_groups:
         raise ValueError(
-            f"No hay suficientes ejemplos BLEU alto: "
-            f"{len(df_high)} < {required_high}"
+            f"No hay suficientes ejemplos BLEU alto: {len(df_high)} < {args.num_groups}"
         )
 
-    if len(df_mid) < required_mid:
+    mid_per_group = len(df_mid) // args.num_groups
+    if mid_per_group < 1:
         raise ValueError(
-            f"No hay suficientes ejemplos BLEU intermedios: "
-            f"{len(df_mid)} < {required_mid}"
+            f"No hay suficientes ejemplos BLEU intermedios para {args.num_groups} grupos"
         )
 
     # -----------------------------
-    # Selección estratificada
+    # Muestreo estratificado adaptativo
     # -----------------------------
-    
-    selected_rows = []
-
     df_high = df_high.sample(frac=1, random_state=args.seed).reset_index(drop=True)
     df_mid = df_mid.sample(frac=1, random_state=args.seed).reset_index(drop=True)
 
+    selected_rows = []
     high_ptr = 0
     mid_ptr = 0
 
-    for g in range(num_groups):
+    for g in range(args.num_groups):
         group_rows = []
 
-        # 1 caso BLEU alto obligatorio
+        # 1 BLEU alto
         group_rows.append(df_high.iloc[high_ptr])
         high_ptr += 1
 
-        # 9 casos BLEU intermedio
-        '''
-        for _ in range(9):
-            group_rows.append(df_mid.iloc[mid_ptr])
-            mid_ptr += 1
-        '''
-
-        mid_per_group = len(df_mid) // num_groups
-
-        if mid_per_group < 1:
-            raise ValueError("No hay suficientes BLEU intermedios para ningún grupo")
-
+        # BLEU intermedios adaptativos
         for _ in range(mid_per_group):
             group_rows.append(df_mid.iloc[mid_ptr])
             mid_ptr += 1
@@ -113,15 +100,20 @@ def main():
     full_rows = []
     eval_rows = []
 
-    for g in range(num_groups):
-        group_df = df_sel.iloc[g * 10:(g + 1) * 10].copy()
-        group_id = (g + 1) * 10
+    idx = 0
+    for g in range(args.num_groups):
+        group_size = 1 + mid_per_group
+        group_df = df_sel.iloc[idx: idx + group_size].copy()
+        idx += group_size
 
+        group_id = g + 1
         group_df["grupo"] = group_id
-        group_df["id_grupo"] = range(1, 11)
+        group_df["id_grupo"] = range(1, group_size + 1)
 
         # Elegir 2 posiciones para target
-        target_positions = set(random.sample(range(10), 2))
+        target_positions = set(
+            random.sample(range(group_size), min(2, group_size))
+        )
 
         for _, row in group_df.iterrows():
             pos = row["id_grupo"] - 1
@@ -151,8 +143,13 @@ def main():
     df_full.to_csv(args.output_full_csv, index=False, encoding="utf-8")
     df_eval.to_csv(args.output_eval_csv, index=False, encoding="utf-8")
 
-    print(f"CSV completo generado: {args.output_full_csv}")
-    print(f"CSV de evaluación generado: {args.output_eval_csv}")
+    print("✅ Muestreo completado correctamente")
+    print(f"   Grupos           : {args.num_groups}")
+    print(f"   BLEU alto/grupo  : 1")
+    print(f"   BLEU mid/grupo   : {mid_per_group}")
+    print(f"   Total ejemplos   : {len(df_full)}")
+    print(f"📄 CSV completo     : {args.output_full_csv}")
+    print(f"📄 CSV evaluación   : {args.output_eval_csv}")
 
 
 if __name__ == "__main__":
