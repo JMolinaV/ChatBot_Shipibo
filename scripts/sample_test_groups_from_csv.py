@@ -88,7 +88,18 @@ def main():
         high_ptr += 1
 
         # 9 casos BLEU intermedio
+        '''
         for _ in range(9):
+            group_rows.append(df_mid.iloc[mid_ptr])
+            mid_ptr += 1
+        '''
+
+        mid_per_group = len(df_mid) // num_groups
+
+        if mid_per_group < 1:
+            raise ValueError("No hay suficientes BLEU intermedios para ningún grupo")
+
+        for _ in range(mid_per_group):
             group_rows.append(df_mid.iloc[mid_ptr])
             mid_ptr += 1
 
