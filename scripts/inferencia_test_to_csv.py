@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Inferencia y evaluación BLEU para Español → Shipibo-Konibo
+Modelo: NLLB entrenado (facebook/nllb-200-distilled-600M fine-tuned)
+"""
+
 import argparse
 import csv
 import hashlib
@@ -10,13 +17,17 @@ from sacrebleu import sentence_bleu
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 
+# =========================================================
+# UTILIDADES
+# =========================================================
+
 def read_jsonl(path: Path):
+    """Lee archivo JSONL con campos src / tgt"""
     with path.open("r", encoding="utf-8") as f:
         for line in f:
-            if not line.strip():
-                continue
-            ex = json.loads(line)
-            yield ex["src"].strip(), ex["tgt"].strip()
+            if line.strip():
+                ex = json.loads(line)
+                yield ex["src"].strip(), ex["tgt"].strip()
 
 
 def load_test_split(data_dir: Path):
@@ -33,15 +44,21 @@ def make_id(src: str, tgt: str) -> str:
 
 
 def get_langs_from_direction(direction: str):
-    if direction == "shp2es":
-        return "quy_Latn", "spa_Latn"
-    elif direction == "es2shp":
+    if direction == "es2shp":
         return "spa_Latn", "quy_Latn"
+    elif direction == "shp2es":
+        return "quy_Latn", "spa_Latn"
     else:
-        raise ValueError("direction debe ser shp2es o es2shp")
+        raise ValueError("direction debe ser: es2shp o shp2es")
 
+
+# =========================================================
+# MODELO
+# =========================================================
 
 def load_model_and_tokenizer(model_folder: Path, src_lang: str, tgt_lang: str):
+    print("📦 Cargando tokenizer y modelo...", flush=True)
+
     tokenizer = AutoTokenizer.from_pretrained(
         model_folder,
         src_lang=src_lang,
@@ -50,11 +67,7 @@ def load_model_and_tokenizer(model_folder: Path, src_lang: str, tgt_lang: str):
 
     model = AutoModelForSeq2SeqLM.from_pretrained(model_folder)
 
-    if hasattr(tokenizer, "lang_code_to_id") and tgt_lang in tokenizer.lang_code_to_id:
-        forced_bos = tokenizer.lang_code_to_id[tgt_lang]
-    else:
-        forced_bos = tokenizer.convert_tokens_to_ids(tgt_lang)
-
+    forced_bos = tokenizer.convert_tokens_to_ids(tgt_lang)
     model.config.forced_bos_token_id = forced_bos
     model.config.decoder_start_token_id = forced_bos
 
@@ -62,10 +75,27 @@ def load_model_and_tokenizer(model_folder: Path, src_lang: str, tgt_lang: str):
     model.to(device)
     model.eval()
 
+    print(f"✅ Modelo listo en {device}", flush=True)
     return tokenizer, model, device
 
 
-def translate_batch(texts, tokenizer, model, device, max_len, num_beams):
+def translate_batch(
+    texts,
+    tokenizer,
+    model,
+    device,
+    max_len,
+    num_beams,
+    src_lang,
+    tgt_lang,
+):
+    """
+    Traduce un batch configurando correctamente src_lang y tgt_lang
+    """
+
+    # 🔴 CRÍTICO EN NLLB
+    tokenizer.src_lang = src_lang
+
     enc = tokenizer(
         texts,
         return_tensors="pt",
@@ -80,26 +110,32 @@ def translate_batch(texts, tokenizer, model, device, max_len, num_beams):
             **enc,
             max_length=max_len,
             num_beams=num_beams,
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
         )
 
     return tokenizer.batch_decode(out, skip_special_tokens=True)
 
+
+# =========================================================
+# MAIN
+# =========================================================
 
 def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--model_folder", type=str, required=True)
     parser.add_argument("--data_dir", type=str, required=True)
-    parser.add_argument("--direction", type=str, required=True,
-                        help="shp2es o es2shp")
+    parser.add_argument("--direction", type=str, default="es2shp")
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_len", type=int, default=128)
-    parser.add_argument("--num_beams", type=int, default=4)
-    parser.add_argument("--output_csv", type=str, default="test_inference.csv")
+    parser.add_argument("--num_beams", type=int, default=5)
+    parser.add_argument("--output_csv", type=str, required=True)
 
     args = parser.parse_args()
 
     src_lang, tgt_lang = get_langs_from_direction(args.direction)
+
+    print(f"🌍 Dirección: {src_lang} → {tgt_lang}", flush=True)
 
     data = load_test_split(Path(args.data_dir))
 
@@ -110,6 +146,8 @@ def main():
     )
 
     rows = []
+
+    print(f"🧪 Traduciendo {len(data)} ejemplos...\n", flush=True)
 
     for i in range(0, len(data), args.batch_size):
         batch = data[i : i + args.batch_size]
@@ -123,22 +161,15 @@ def main():
             device,
             args.max_len,
             args.num_beams,
+            src_lang,
+            tgt_lang,
         )
 
         for src, tgt, pred in zip(src_batch, tgt_batch, preds):
             uid = make_id(src, tgt)
 
-            bleu_pred = sentence_bleu(
-                pred,
-                [tgt],
-                tokenize="13a",
-            ).score
-
-            bleu_alt = sentence_bleu(
-                src,
-                [tgt],
-                tokenize="13a",
-            ).score
+            bleu_pred = sentence_bleu(pred, [tgt], tokenize="13a").score
+            bleu_alt = sentence_bleu(src, [tgt], tokenize="13a").score
 
             rows.append({
                 "id": uid,
@@ -150,6 +181,8 @@ def main():
             })
 
     out_path = Path(args.output_csv)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
     with out_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(
             f,
@@ -163,10 +196,10 @@ def main():
             ],
         )
         writer.writeheader()
-        for r in rows:
-            writer.writerow(r)
+        writer.writerows(rows)
 
-    print(f"CSV generado con {len(rows)} registros en {out_path}")
+    print(f"\n✅ CSV generado con {len(rows)} ejemplos")
+    print(f"📁 Ruta: {out_path}")
 
 
 if __name__ == "__main__":
